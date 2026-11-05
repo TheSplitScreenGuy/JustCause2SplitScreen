@@ -187,11 +187,19 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 `build.bat` produces `build\dinput8.dll`, and `install.ps1` copies it into the game folder.
 Developer notes, test tools and the code layout are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
+## How it was made
+
+All of the code in this mod (the DLL, the reverse engineering of the game, and the tools and test
+scripts) was written by [Claude Code](https://claude.com/claude-code), Anthropic's AI coding
+agent. TheSplitScreenGuy directed the project, decided what to build, and playtested every feature
+on PC and Steam Deck.
+
 ## License
 
 [MIT](LICENSE). This covers the mod's own code only, not Just Cause 2 or any of its files.
 
 ## Disclaimer
 
-A fan-made mod, not affiliated with or endorsed by Square Enix, Eidos or Avalanche Studios. You
-need your own copy of Just Cause 2.
+A fan-made mod, not affiliated with or endorsed by Square Enix, Eidos or Avalanche Studios, or by
+Anthropic. You need your own copy of Just Cause 2. The code was written by an AI and is provided as
+is (see the license): use it at your own risk and back up your saves.
