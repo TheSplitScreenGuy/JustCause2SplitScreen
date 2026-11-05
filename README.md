@@ -1,5 +1,10 @@
 # JC2 Splitscreen
 
+> **Made with AI:** all of the code in this mod (the DLL, the reverse engineering of the game, and
+> the tools and test scripts) was written by [Claude Code](https://claude.com/claude-code),
+> Anthropic's AI coding agent. TheSplitScreenGuy directed the project, decided what to build, and
+> playtested every feature on PC and Steam Deck.
+
 Local two-player splitscreen for **Just Cause 2** (Steam version) on one PC or a Steam Deck.
 
 Player 2 gets their own Rico, their own camera in the bottom half of the screen and their own
@@ -186,13 +191,6 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 
 `build.bat` produces `build\dinput8.dll`, and `install.ps1` copies it into the game folder.
 Developer notes, test tools and the code layout are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
-
-## How it was made
-
-All of the code in this mod (the DLL, the reverse engineering of the game, and the tools and test
-scripts) was written by [Claude Code](https://claude.com/claude-code), Anthropic's AI coding
-agent. TheSplitScreenGuy directed the project, decided what to build, and playtested every feature
-on PC and Steam Deck.
 
 ## License
 
