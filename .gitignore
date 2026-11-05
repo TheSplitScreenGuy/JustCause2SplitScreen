@@ -1,0 +1,27 @@
+# Build output
+build/
+tools/bin/
+__pycache__/
+*.pyc
+
+# Release files: the zip goes on the GitHub Releases page, not in the repo
+dist/
+
+# Local test data (screenshots are ~900 MB, memory scans)
+tools/shots/
+tools/scans/
+
+# Decompiled / disassembled game code from Ghidra: that's the game's code, keep it private.
+# The Ghidra scripts (*.java, run.ps1) are still included.
+tools/ghidra/out_*
+tools/ghidra/dis_*
+tools/ghidra/find_*
+tools/ghidra/re_*
+tools/ghidra/pat_*
+tools/ghidra/*.txt
+# This machine's Ghidra paths (see run.ps1)
+tools/ghidra/local.ps1
+
+# Logs and crash dumps, if any end up here
+*.log
+*.dmp

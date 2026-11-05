@@ -1,0 +1,21 @@
+﻿# Test places (world x y z) for "p1 at" / "p2 at":   python -I tools\jc2ctl.py mod "p1 at 903.3 317.6 -4249.6"
+heli_spawn     903.3 317.6 -4249.6   # where the user's helicopter spawns (P1 standing there, 2026-10-29)
+heli_door      896.75 317.65 -4250.24 # P2 here, camera looking 0.046 -0.999 (p2 face 0.046 -0.1 -0.999): Y enters the heli
+car_stunt      896.27 223.30 -2027.90 # P2 here (p2 face -0.133 0.1 0.991): B stunt jumps onto the hideout car, 897.3 224.05 -2035.5
+markers        892   225   -2010    # Reapers HQ 1.50 km / Ular Boys HQ 1.04 km labels in view
+markers_p2     892   230   -1700     # ~300 m from "markers": Reapers HQ 1.80 km (p2 face 0 -0.1 1)
+statue         633.3 222.2 -2566.7   # P1 aiming at the destructible "Statue Torso" (label + health bar by the crosshair):
+                                     #   python -I tools\spot.py p1 633.3 222.2 -2566.7 0.946 -0.191 -0.263  (2026-11-01; P2 was at 987.9 200.6 -1499.0)
+pickup         609.2 222.0 -2624.7   # P1 near a pickup (money crate etc.) whose icon shows over it; also shows in P2's half:
+                                     #   python -I tools\spot.py p1 609.2 222.0 -2624.7 0.810 0.014 -0.587  (2026-11-01)
+vehicle_part   1234.7 205.4 -1088.8  # P1 facing a vehicle part crate (single use: collecting it needs a restart to get it back):
+                                     #   python -I tools\spot.py p1 1234.7 205.4 -1088.8 0.220 0.080 0.972  (2026-11-01)
+weapon_box     1713.5 224.6 1723.0   # P2 standing ~5 m in front of a weapon box (box trigger centre 1713.3 225.1 1728.7, opens on walking in; another box at 1694.8 225.4 1735.1) (2026-11-03)
+sky_leaves     1116.69 200.90 -1786.22  # P2 here (P1 beside him), P2's camera heading -0.072 0.997 (x z), looking up ~35 deg: stretched leaf streaks in P2's sky (screenshot tools/shots/leaves_p2.png) (2026-11-03)
+sky_streaks    700.40 241.26 -2514.30   # P2 on a rooftop, camera forward 0.653 -0.200 0.731 (p2 face): many streaks in open sky; P1 at 1239 201 -3788 (screenshot tools/shots/leaves_p2_more.png) (2026-11-03)
+reapers_hq     1218.70 259.63 -3449.08  # P2 at the Reapers HQ among gun boxes (camera facing 0.514 -0.224 0.828; p2 face 0.514 -0.224 0.828); some boxes only opened for P2 on a second try (2026-11-03)
+cam_wall       956.23 200.94 -1742.68  # P2 here, p2 face 0.999 0.023 0.047 (user's spot, 2026-11-03): his camera 10 m back clips into a building (awning / glass front); P1 at the hideout
+
+airport        -6225.11 211.62 -3648.17  # P1 at the airport (2026-11-04); P2 was in the Aeroliner 474 (V114_JumboJet) at -6240.93 212.49 -3595.43
+flak_p2        -525.32 211.15 -3537.97  # P2 sitting on a flak cannon (2026-11-04; user put him there)
+race_flag      9323.87 213.37 1087.38   # P1 in front of a race flag (2026-11-04; user put him there): Y starts the race preview (P2 at 9323.49 213.37 1088.70)
