@@ -13,7 +13,7 @@ apart: the world, terrain, roads and vehicles load around each of them.
 
 One download works on both Windows and the Steam Deck.
 
-> **Version 1.0.** Please report problems in the Issues tab and attach `jc2ss.log` (see
+> **Version 1.1.** Please report problems in the Issues tab and attach `jc2ss.log` (see
 > [Troubleshooting](#troubleshooting)).
 
 ## What you get
@@ -95,6 +95,18 @@ The mod doesn't change any of the game's own files.
 Missions, money, upgrades and progress are Player 1's game. Player 2 helps out and uses Player 1's
 weapons and upgrades.
 
+### Player 1 on keyboard and mouse
+
+If Player 1 plays on keyboard and mouse and you have one or more controllers plugged in, click the
+**P1: Controller** button in the bottom-left corner of the main menu (or press **F7** at any time).
+It switches to **P1: Keyboard and Mouse**:
+
+- The game ignores every controller, so a pad can't move Player 1 by accident.
+- Player 2 is whichever controller presses **Start** first, in any slot.
+
+Click it again (or press **F7**) to give Player 1 a controller again. Player 2 then goes back to the
+`ControllerSlot` pad. To start in keyboard mode every time, set `KeyboardMouse=1` in `jc2ss.ini`.
+
 ### Tips
 
 - **Bring Player 2 back to Player 1:** have Player 2 leave (**Back/Select + Start**) and join again
@@ -108,16 +120,17 @@ weapons and upgrades.
 Press **F8** to show or hide a status bar in the top-left corner. It's hidden when the game starts.
 
 ```
-JC2 Splitscreen v1.0 | 60 FPS | cam 9324 214 1089 | P2: press Start to join [pad 2] | F5 ammo | F6 swap | F8 hide | F9 $50k
+JC2 Splitscreen v1.1 | 60 FPS | cam 9324 214 1089 | P1: pad | P2: press Start to join [pad 2] | F5 ammo | F6 swap | F7 P1 kb/pad | F8 hide | F9 $50k
 ```
 
 | Part | Meaning |
 | --- | --- |
-| `v1.0` | the mod's version |
+| `v1.1` | the mod's version |
 | `60 FPS` | frames per second for the whole screen (each player gets about half) |
 | `cam x y z` | Player 1's camera position in the world (handy for bug reports) |
 | `P2: ...` | Player 2's state: **no controller** (nothing found in Player 2's slot), **press Start to join**, or **joined (Back+Start leaves)** |
-| `[pad N]` | which controller is Player 2's (1 = first, 2 = second ...). Set with `ControllerSlot` in `jc2ss.ini` |
+| `P1: ...` | **pad**, or **kb+mouse** when Player 1 is on keyboard and mouse (F7 / the main menu button) |
+| `[pad N]` | which controller is Player 2's (1 = first, 2 = second ...). Set with `ControllerSlot` in `jc2ss.ini`. In keyboard mode it shows `any pad` until Player 2 joins |
 
 The keys work whether or not the bar is showing:
 
@@ -125,6 +138,7 @@ The keys work whether or not the bar is showing:
 | --- | --- |
 | **F5** | Refills ammo, grenades and C4 for both players |
 | **F6** | Player 1 and Player 2 swap places |
+| **F7** | Player 1 on keyboard and mouse / back on a controller (same as the main menu button) |
 | **F8** | Shows or hides the status bar |
 | **F9** | Adds $50,000 (a cheat, mainly for testing) |
 
@@ -139,6 +153,11 @@ in the controller settings.
 ; so a second pad is usually 1. If Start on your second pad does nothing, try 2.
 ControllerSlot=1
 
+[Player1]
+; 1: start with Player 1 on keyboard and mouse (the game ignores controllers, and Player 2 is
+; whichever controller presses Start). The main menu button and F7 switch it while playing.
+KeyboardMouse=0
+
 [Physics]
 ; Size in metres of the area around the players where objects have collision (the game's own is
 ; 8100). Bigger lets the players be farther apart.
@@ -150,7 +169,7 @@ Restart the game after changing it.
 ## Troubleshooting
 
 The mod writes `jc2ss.log` in the game folder. Its first line should read
-`JC2 Splitscreen v1.0 loaded`.
+`JC2 Splitscreen v1.1 loaded`.
 
 - **No `jc2ss.log` at all:** the DLL isn't next to `JustCause2.exe`. On the Deck, also check the
   launch option.

@@ -30,6 +30,16 @@ bool SplitscreenCutscene();
 // user: Player 2's view off so Player 1 sees that screen whole, back on when he gets control).
 bool SplitscreenPlayer1Held();
 
+// Keyboard mode (F7, the main menu button, jc2ss.ini [Player1] KeyboardMouse=1): the game sees
+// no controllers, so Player 1 plays on keyboard and mouse, and Player 2 joins on whichever pad
+// presses Start. Turning it off puts Player 2 back on his configured slot.
+bool SplitscreenKeyboardP1();
+void SplitscreenSetKeyboardP1(bool on);
+
+// The title / main menu is up (the UI mode at [0x011958C4]).
+bool SplitscreenInMainMenu();
+int SplitscreenUiMode(); // testing
+
 // Player 2 called the black market dealer: the menu that opens next takes pad 2 as pad 1.
 void SplitscreenPlayer2CalledDealer();
 

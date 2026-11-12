@@ -36,14 +36,23 @@ WORD g_gameRumble[XUSER_MAX_COUNT][2];
 // (SplitscreenPlayer2CalledDealer), for the menu that opens within kMenuClaimMs; ends when it closes.
 const uintptr_t kUiMode = 0x011958C4;
 const int kUiModeBlackMarket = 5;
+const int kUiModeMainMenu = 1; // title / main menu (2 = loading, 3 = gameplay, 4 = pause menu)
 const DWORD kMenuClaimMs = 30000;
 volatile DWORD g_menuClaimUntil;
 volatile bool g_menuForPlayer2;
+
+// Keyboard mode (user: a button so Player 1 is forced onto keyboard and mouse, and Player 2 is
+// whichever controller presses Start): the game sees no controllers at all, so it only takes
+// keyboard and mouse, and Player 2 joins on any pad. Toggled by F7 or the main menu button,
+// default from jc2ss.ini [Player1] KeyboardMouse.
+volatile bool g_keyboardP1;
+int g_iniSlot = 1;
 
 DWORD WINAPI GameGetStateHook(DWORD slot, XINPUT_STATE* state)
 {
     if (slot < XUSER_MAX_COUNT) InterlockedIncrement(&g_gameReads[slot]);
     if (g_menuForPlayer2 && slot == 0 && g_getState) return g_getState(g_slot, state);
+    if (g_keyboardP1) return ERROR_DEVICE_NOT_CONNECTED;
     return g_gameGetState(slot, state);
 }
 
@@ -67,6 +76,8 @@ DWORD WINAPI GameSetStateHook(DWORD slot, XINPUT_VIBRATION* v)
         g_gameRumble[slot][0] = v->wLeftMotorSpeed;
         g_gameRumble[slot][1] = v->wRightMotorSpeed;
     }
+    // Player 1 has no pad then: the game's rumble would shake whichever pad is in slot 0.
+    if (g_keyboardP1) return ERROR_DEVICE_NOT_CONNECTED;
     return g_gameSetState(slot, v);
 }
 
@@ -187,6 +198,53 @@ WORD g_prevButtons;
 DWORD g_nextDisconnectedPoll;
 Player2Sticks g_sticks;
 
+// Keyboard mode before Player 2 joins: every slot is watched for Start (empty slots once a
+// second each, as polling them is slow). Kept current for Player 2's slot while he plays, so the
+// Start of his Back + Start doesn't join him again right after he leaves.
+WORD g_scanPrev[XUSER_MAX_COUNT];
+DWORD g_scanNextPoll[XUSER_MAX_COUNT];
+bool g_scanConnected[XUSER_MAX_COUNT];
+
+void StopRumble(int slot)
+{
+    if (!g_setState) return;
+    XINPUT_VIBRATION v = {};
+    g_setState(slot, &v);
+    g_rumbleSent[0] = g_rumbleSent[1] = 0;
+}
+
+// Returns the slot that just pressed Start (without Back), or -1.
+int ScanForStart(DWORD now)
+{
+    int found = -1;
+    for (int s = 0; s < XUSER_MAX_COUNT; s++) {
+        if (!g_scanConnected[s] && (LONG)(now - g_scanNextPoll[s]) < 0) continue;
+        XINPUT_STATE state = {};
+        bool connected = g_getState(s, &state) == ERROR_SUCCESS;
+        if (connected != g_scanConnected[s]) {
+            g_scanConnected[s] = connected;
+            Log("Keyboard mode: controller in slot %d %s", s, connected ? "connected" : "disconnected");
+        }
+        if (!connected) {
+            g_scanNextPoll[s] = now + 1000;
+            g_scanPrev[s] = 0;
+            continue;
+        }
+        WORD buttons = state.Gamepad.wButtons;
+        bool start = (buttons & XINPUT_GAMEPAD_START) && !(g_scanPrev[s] & XINPUT_GAMEPAD_START);
+        if (start && !(buttons & XINPUT_GAMEPAD_BACK) && found < 0) found = s;
+        g_scanPrev[s] = buttons;
+    }
+    return found;
+}
+
+bool AnyScannedPad()
+{
+    for (bool c : g_scanConnected)
+        if (c) return true;
+    return false;
+}
+
 float Axis(SHORT v, SHORT deadZone)
 {
     if (v > -deadZone && v < deadZone) return 0.0f;
@@ -206,8 +264,12 @@ void Init()
     char* slash = strrchr(path, '\\');
     if (slash) *(slash + 1) = '\0';
     strcat_s(path, "jc2ss.ini");
+    //   [Player1]
+    //   KeyboardMouse=1    ; start in keyboard mode (F7 / the main menu button toggle it)
     int slot = (int)GetPrivateProfileIntA("Player2", "ControllerSlot", 1, path);
-    g_slot = (slot >= 0 && slot < XUSER_MAX_COUNT) ? slot : 1;
+    g_slot = g_iniSlot = (slot >= 0 && slot < XUSER_MAX_COUNT) ? slot : 1;
+    g_keyboardP1 = GetPrivateProfileIntA("Player1", "KeyboardMouse", 0, path) != 0;
+    if (g_keyboardP1) Log("Player 1 on keyboard and mouse (jc2ss.ini)");
 
     // The game already uses xinput1_3, so this just returns the loaded module.
     const char* names[] = { "xinput1_3.dll", "xinput1_4.dll", "xinput9_1_0.dll" };
@@ -288,8 +350,22 @@ void SplitscreenUpdate()
         Log(g_player1Held ? "Player 1's control taken by a script (race screen?): split off" : "Player 1's control back: split allowed");
     }
 
-    // Polling an empty slot is slow in XInput, so only retry it once a second.
     DWORD now = GetTickCount();
+    if (g_keyboardP1 && !g_joined) {
+        g_sticks = {};
+        if (g_rumbleSent[0] || g_rumbleSent[1]) StopRumble(g_slot);
+        int slot = ScanForStart(now);
+        if (slot < 0) return;
+        g_slot = slot;
+        g_connected = true;
+        g_prevButtons = g_scanPrev[slot]; // this Start is used up
+        g_joined = true;
+        Log("Player 2 joined on pad %d (keyboard mode)", slot + 1);
+        BringPlayer2Back();
+        return;
+    }
+
+    // Polling an empty slot is slow in XInput, so only retry it once a second.
     if (!g_connected && now < g_nextDisconnectedPoll) return;
 
     XINPUT_STATE state = {};
@@ -324,6 +400,8 @@ void SplitscreenUpdate()
     bool startPressed = (buttons & XINPUT_GAMEPAD_START) && !(g_prevButtons & XINPUT_GAMEPAD_START);
     bool backHeld = (buttons & XINPUT_GAMEPAD_BACK) != 0;
     g_prevButtons = buttons;
+    g_scanPrev[g_slot] = buttons;
+    g_scanConnected[g_slot] = true;
 
     if (startPressed) {
         if (!g_joined && !backHeld) {
@@ -340,7 +418,46 @@ void SplitscreenUpdate()
 Player2Status SplitscreenPlayer2Status()
 {
     if (g_joined) return Player2Status::Joined;
+    if (g_keyboardP1) return AnyScannedPad() ? Player2Status::Waiting : Player2Status::NoController;
     return g_connected ? Player2Status::Waiting : Player2Status::NoController;
+}
+
+bool SplitscreenKeyboardP1()
+{
+    return g_keyboardP1;
+}
+
+void SplitscreenSetKeyboardP1(bool on)
+{
+    if (!g_initialized) Init();
+    if (on == g_keyboardP1) return;
+    if (on && !g_gameGetState) Log("Keyboard mode: the game's XInput isn't hooked (Debug SkipGameXInput?), its pads stay on");
+    g_keyboardP1 = on;
+    Log(on ? "Player 1 on keyboard and mouse: the game sees no controllers, player 2 joins on any pad"
+           : "Player 1 back on controller: player 2 on pad %d", g_iniSlot + 1);
+    if (!on && g_slot != g_iniSlot) {
+        // Player 2's pad would be Player 1's again (or nobody's): he leaves, and joins on his own pad.
+        if (g_joined) {
+            g_joined = false;
+            Log("Player 2 left (his pad isn't player 2's pad outside keyboard mode)");
+        }
+        StopRumble(g_slot);
+        g_slot = g_iniSlot;
+        g_connected = false;
+        g_nextDisconnectedPoll = 0;
+        g_prevButtons = 0;
+        g_sticks = {};
+    }
+}
+
+bool SplitscreenInMainMenu()
+{
+    return *(volatile int*)kUiMode == kUiModeMainMenu;
+}
+
+int SplitscreenUiMode()
+{
+    return *(volatile int*)kUiMode;
 }
 
 int SplitscreenPlayer2Slot()

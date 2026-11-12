@@ -60,7 +60,7 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID)
         DisableThreadLibraryCalls(module);
         LogInit();
         TraceInitMainThread();
-        Log("JC2 Splitscreen v1.0 loaded%s", RunningUnderWine() ? " (under Wine/Proton)" : "");
+        Log("JC2 Splitscreen v1.1 loaded%s", RunningUnderWine() ? " (under Wine/Proton)" : "");
 
         // Only patches a pointer in the exe's import table, which is safe under the loader lock.
         if (InstallHooks())

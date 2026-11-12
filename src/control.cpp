@@ -114,6 +114,14 @@ void Execute(IDXGISwapChain* swapChain, const std::string& id, const std::string
         WriteResult(id, "ok");
     } else if (!strcmp(verb, "cam")) {
         WriteResult(id, CameraText());
+    } else if (!strcmp(verb, "uimode")) {
+        // Read only: the game's UI mode, and whether the mod takes it as the main menu.
+        WriteResult(id, "ui mode " + std::to_string(SplitscreenUiMode()) + (SplitscreenInMainMenu() ? " (main menu)" : ""));
+    } else if (!strcmp(verb, "kbp1")) {
+        // "kbp1 on|off": keyboard mode, as F7 / the main menu button; no argument just reports it.
+        if (!strcmp(args, "on") || !strcmp(args, "off")) SplitscreenSetKeyboardP1(!strcmp(args, "on"));
+        WriteResult(id, std::string("ok keyboard mode ") + (SplitscreenKeyboardP1() ? "on" : "off") + ", player 2 on pad " +
+                            std::to_string(SplitscreenPlayer2Slot() + 1));
     } else if (!strcmp(verb, "screenshot")) {
         const char* error;
         WriteResult(id, SaveScreenshot(swapChain, args, &error) ? std::string("ok") : std::string("error ") + error);

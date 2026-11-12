@@ -71,8 +71,9 @@ struct TextSurface {
     char last[64];
     int width;
 };
-TextSurface g_markerLabels[3]; // [0], [1]: the halves' markers; [2]: the join hint
+TextSurface g_markerLabels[4]; // [0], [1]: the halves' markers; [2]: the join hint; [3]: the P1 button
 TextSurface& g_hintLabel = g_markerLabels[2];
+TextSurface& g_buttonLabel = g_markerLabels[3];
 bool g_createFailed;
 bool g_showOverlay = false; // off by default (user, for release); F8 shows it
 
@@ -388,6 +389,49 @@ bool KeyPressed(int vk)
     return pressed;
 }
 
+// The main menu's Player 1 button (user: a button for P1 on keyboard, and the main menu says
+// "P1: Keyboard and Mouse" once clicked): bottom left, toggles keyboard mode like F7.
+// Its rectangle in back buffer pixels, from the last frame it was drawn (0 size: not shown).
+float g_buttonRect[4];
+
+void DrawPlayer1Button(float w, float h)
+{
+    bool on = SplitscreenKeyboardP1();
+    UpdateLabel(g_buttonLabel, on ? "P1: Keyboard and Mouse   (click / F7: controller)"
+                                  : "P1: Controller   (click / F7: keyboard and mouse)");
+    const float onBg[4] = { 0.20f, 0.55f, 1.00f, 0.85f }; // Player 1's marker blue
+    const float offBg[4] = { 0.05f, 0.05f, 0.08f, 0.75f };
+    const float clear[4] = {};
+    float lw = (float)g_buttonLabel.width, lh = (float)kTextTexHeight;
+    float bw = lw + kPadding * 4, bh = lh + kPadding * 2;
+    float x = 24.0f, y = h - 24.0f - bh;
+    DrawRect(x, y, bw, bh, w, h, on ? onBg : offBg, false);
+    g_res.device->PSSetShaderResources(0, 1, &g_buttonLabel.srv);
+    DrawRect(x + kPadding * 2, y + kPadding, lw, lh, w, h, clear, true);
+    g_res.device->PSSetShaderResources(0, 1, &g_res.textSrv);
+    g_buttonRect[0] = x;
+    g_buttonRect[1] = y;
+    g_buttonRect[2] = bw;
+    g_buttonRect[3] = bh;
+}
+
+// A left click on the button (while it is shown and the game has focus) toggles keyboard mode.
+void PollPlayer1ButtonClick(HWND window, float bbWidth, float bbHeight, bool shown, bool focused)
+{
+    bool click = KeyPressed(VK_LBUTTON);
+    if (!shown) g_buttonRect[2] = 0.0f;
+    if (!click || !shown || !focused || g_buttonRect[2] <= 0.0f || !window) return;
+    POINT p;
+    RECT client;
+    if (!GetCursorPos(&p) || !ScreenToClient(window, &p) || !GetClientRect(window, &client)) return;
+    if (client.right <= 0 || client.bottom <= 0) return;
+    float x = p.x * bbWidth / client.right, y = p.y * bbHeight / client.bottom;
+    if (x < g_buttonRect[0] || x > g_buttonRect[0] + g_buttonRect[2] || y < g_buttonRect[1] || y > g_buttonRect[1] + g_buttonRect[3])
+        return;
+    SplitscreenSetKeyboardP1(!SplitscreenKeyboardP1());
+    Log("Main menu button clicked: player 1 on %s", SplitscreenKeyboardP1() ? "keyboard and mouse" : "controller");
+}
+
 void PollHotkeys()
 {
     DWORD pid = 0;
@@ -403,6 +447,15 @@ void PollHotkeys()
     if (focused && f6) PlayersRequestSwap();
     bool f9 = KeyPressed(VK_F9);
     if (focused && f9) RequestMoney(50000);
+    bool f7 = KeyPressed(VK_F7);
+    if (focused && f7) SplitscreenSetKeyboardP1(!SplitscreenKeyboardP1());
+}
+
+bool GameFocused()
+{
+    DWORD pid = 0;
+    GetWindowThreadProcessId(GetForegroundWindow(), &pid);
+    return pid == GetCurrentProcessId();
 }
 
 void UpdateFps()
@@ -430,7 +483,13 @@ void OverlayOnPresent(IDXGISwapChain* swapChain)
     PollHotkeys();
     bool splitActive = SplitscreenActive();
     bool hint = JoinHintVisible();
-    if (g_createFailed || (!g_showOverlay && !splitActive && !hint)) return;
+    bool button = SplitscreenInMainMenu();
+    if (button || g_buttonRect[2] > 0.0f) {
+        DXGI_SWAP_CHAIN_DESC desc = {};
+        swapChain->GetDesc(&desc);
+        PollPlayer1ButtonClick(desc.OutputWindow, (float)desc.BufferDesc.Width, (float)desc.BufferDesc.Height, button, GameFocused());
+    }
+    if (g_createFailed || (!g_showOverlay && !splitActive && !hint && !button)) return;
 
     ID3D10Device* device = nullptr;
     if (FAILED(swapChain->GetDevice(__uuidof(ID3D10Device), (void**)&device))) return;
@@ -497,6 +556,7 @@ void OverlayOnPresent(IDXGISwapChain* swapChain)
         DrawPlayerMarkers(w, h);
     }
     if (hint) DrawJoinHint(w, h);
+    if (button) DrawPlayer1Button(w, h);
 
     if (g_showOverlay) {
         const char* p2 = "";
@@ -510,9 +570,12 @@ void OverlayOnPresent(IDXGISwapChain* swapChain)
         if (ReadMainCamera(&m))
             sprintf_s(cam, "cam %.0f %.0f %.0f", m.position[0], m.position[1], m.position[2]);
 
+        char pad[16] = "any pad";
+        bool kb = SplitscreenKeyboardP1();
+        if (!kb || SplitscreenPlayer2Status() == Player2Status::Joined) sprintf_s(pad, "pad %d", SplitscreenPlayer2Slot() + 1);
         char text[256];
-        sprintf_s(text, "JC2 Splitscreen v1.0 |%3d FPS | %s | %s [pad %d] | F5 ammo | F6 swap | F8 hide | F9 $50k",
-                  g_fps, cam, p2, SplitscreenPlayer2Slot() + 1);
+        sprintf_s(text, "JC2 Splitscreen v1.1 |%3d FPS | %s | P1: %s | %s [%s] | F5 ammo | F6 swap | F7 P1 kb/pad | F8 hide | F9 $50k",
+                  g_fps, cam, kb ? "kb+mouse" : "pad", p2, pad);
         UpdateText(text);
 
         const float bg[4] = { 0.05f, 0.05f, 0.08f, 0.65f };
